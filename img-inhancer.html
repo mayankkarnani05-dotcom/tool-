@@ -1,0 +1,300 @@
+itapics/
+├── index.html
+├── about.html
+├── privacy.html
+├── terms.html
+├── contact.html
+├── styles.css
+├── app.js
+├── favicon.ico   (your generated logo)
+├── manifest.webmanifest
+├── service-worker.js
+├── robots.txt
+├── sitemap.xml
+├── ads.txt
+└── cloudflare-worker/
+    ├── worker.js
+    └── wrangler.toml   <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iTapics | Free Online Photo Enhancer & Background Remover</title>
+  <meta name="description" content="iTapics is a free online tool to enhance, edit, and remove photo backgrounds. SEO optimized, AdSense ready.">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta property="og:title" content="iTapics - Free Online Photo Enhancer">
+  <meta property="og:description" content="Enhance, edit, and remove backgrounds with iTapics. 100% free, online, fast.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.example.com/">
+  <meta property="og:image" content="https://www.example.com/og-image.jpg">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header>
+    <img src="favicon.ico" alt="iTapics logo" class="logo">
+    <h1>iTapics</h1>
+    <nav>
+      <a href="about.html">About</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <!-- Top Ad -->
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXX" data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+  <main>
+    <h2>Free Online Photo Enhancer & Background Remover</h2>
+    <input type="file" id="upload" accept="image/*">
+    <canvas id="canvas"></canvas>
+    <div class="tools">
+      <button id="btn-enhance">Auto Enhance</button>
+      <button id="btn-crop">Crop</button>
+      <button id="btn-rotate">Rotate</button>
+      <button id="btn-resize">Resize</button>
+      <button id="btn-watermark">Watermark</button>
+      <button id="btn-filters">Filters</button>
+      <button id="btn-magic-remove">Magic Remove (beta)</button>
+      <button id="btn-download">Download</button>
+    </div>
+  </main>
+
+  <!-- Bottom Ad -->
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXX" data-ad-slot="9876543210" data-ad-format="auto" data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+  <footer>
+    <p>&copy; 2025 iTapics. All rights reserved.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+let currentImageBlob = null;
+
+// Cloudflare Worker Background Remover
+const BG_REMOVE_ENDPOINT = "https://itapics-bgremove.<your-subdomain>.workers.dev";
+
+// Upload
+document.getElementById("upload").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => loadImage(reader.result);
+  reader.readAsDataURL(file);
+  currentImageBlob = file;
+});
+
+function loadImage(src) {
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+  };
+  img.src = src;
+}
+
+// Auto Enhance (simple contrast/brightness tweak)
+document.getElementById("btn-enhance").addEventListener("click", () => {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = Math.min(255, d[i] * 1.1 + 10);
+    d[i + 1] = Math.min(255, d[i + 1] * 1.1 + 10);
+    d[i + 2] = Math.min(255, d[i + 2] * 1.1 + 10);
+  }
+  ctx.putImageData(imageData, 0, 0);
+});
+
+// Rotate
+document.getElementById("btn-rotate").addEventListener("click", () => {
+  const temp = document.createElement("canvas");
+  const tctx = temp.getContext("2d");
+  temp.width = canvas.height;
+  temp.height = canvas.width;
+  tctx.translate(temp.width / 2, temp.height / 2);
+  tctx.rotate(Math.PI / 2);
+  tctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  canvas.width = temp.width;
+  canvas.height = temp.height;
+  ctx.drawImage(temp, 0, 0);
+});
+
+// Magic Remove
+document.getElementById("btn-magic-remove").addEventListener("click", async () => {
+  if (!currentImageBlob) return alert("Upload an image first.");
+  const fd = new FormData();
+  fd.append("image", currentImageBlob, "photo.png");
+  const res = await fetch(BG_REMOVE_ENDPOINT, { method: "POST", body: fd });
+  if (!res.ok) {
+    const text = await res.text();
+    return alert("Background removal failed: " + text);
+  }
+  const blob = await res.blob();
+  currentImageBlob = blob;
+  loadImage(URL.createObjectURL(blob));
+});
+
+// Download
+document.getElementById("btn-download").addEventListener("click", () => {
+  const link = document.createElement("a");
+  link.download = "itapics-output.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+});
+body {
+  background: #121212;
+  color: #f5f5f5;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  text-align: center;
+}
+header {
+  background: #1e1e1e;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header .logo { width: 40px; }
+nav a {
+  color: #ccc;
+  margin: 0 10px;
+  text-decoration: none;
+}
+nav a:hover { color: #fff; }
+canvas {
+  margin: 20px auto;
+  border: 1px solid #333;
+  max-width: 90%;
+}
+.tools button {
+  margin: 5px;
+  padding: 10px 15px;
+  background: #333;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.tools button:hover { background: #444; }
+footer {
+  margin-top: 30px;
+  padding: 20px;
+  background: #1e1e1e;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>About | iTapics</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header><a href="index.html">⬅ Home</a></header>
+<main><h2>About iTapics</h2><p>iTapics is your free online photo enhancer and background remover. Our goal is to make image editing simple, fast, and accessible.</p></main>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Privacy Policy | iTapics</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header><a href="index.html">⬅ Home</a></header>
+<main><h2>Privacy Policy</h2><p>We respect your privacy. iTapics does not store your uploaded images. Ads are served via Google AdSense, which may use cookies. See Google’s policies for details.</p></main>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Terms of Service | iTapics</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header><a href="index.html">⬅ Home</a></header>
+<main><h2>Terms of Service</h2><p>By using iTapics, you agree to use our tools responsibly and not for illegal or harmful content. We provide the service as-is without warranties.</p></main>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Contact | iTapics</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header><a href="index.html">⬅ Home</a></header>
+<main><h2>Contact Us</h2><p>Email us at: <a href="mailto:hello@example.com">hello@example.com</a></p></main>
+</body>
+</html>
+User-agent: *
+Allow: /
+Sitemap: https://www.example.com/sitemap.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.example.com/</loc></url>
+  <url><loc>https://www.example.com/about.html</loc></url>
+  <url><loc>https://www.example.com/privacy.html</loc></url>
+  <url><loc>https://www.example.com/terms.html</loc></url>
+  <url><loc>https://www.example.com/contact.html</loc></url>
+</urlset>
+google.com, pub-XXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+export default {
+  async fetch(request, env, ctx) {
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    }
+    if (request.method !== "POST") {
+      return new Response(JSON.stringify({ error: "POST an image under 'image'" }), {
+        status: 405,
+        headers: { ...corsHeaders(), "content-type": "application/json" },
+      });
+    }
+    try {
+      const form = await request.formData();
+      const image = form.get("image");
+      if (!image || typeof image === "string") {
+        return new Response(JSON.stringify({ error: "Missing 'image'" }), {
+          status: 400,
+          headers: { ...corsHeaders(), "content-type": "application/json" },
+        });
+      }
+      const fd = new FormData();
+      fd.append("image_file", image, "image.png");
+      fd.append("size", "auto");
+
+      const res = await fetch("https://api.remove.bg/v1.0/removebg", {
+        method: "POST",
+        headers: { "X-Api-Key": env.REMOVE_BG_API_KEY },
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        return new Response(JSON.stringify({ error: "Upstream error", detail: text }), {
+          status: 502,
+          headers: { ...corsHeaders(), "content-type": "application/json" },
+        });
+      }
+      const out = await res.arrayBuffer();
+      return new Response(out, {
+        status: 200,
+        headers: { ...corsHeaders(), "content-type": "image/png" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), {
+        status: 500,
+        headers: { ...corsHeaders(), "content-type": "application/json" },
+      });
+    }
+  },
+};
+
+function corsHeaders() {
+  return {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "Content-Type, Authorization",
+  };
+}
+name = "itapics-bgremove"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+# Add your secret:
+# npx wrangler secret put REMOVE_BG_API_KEY
